@@ -11,7 +11,7 @@ from wsgiref.handlers import format_date_time
 
 import django
 from django.conf import settings
-from django.conf.urls import url
+from django.urls import re_path as url
 from django.core.exceptions import (
     ObjectDoesNotExist, MultipleObjectsReturned, ValidationError, FieldDoesNotExist
 )
@@ -31,7 +31,7 @@ except ImportError:
         ReverseOneToOneDescriptor
 
 from django.http import HttpResponse, HttpResponseNotFound, Http404
-from django.utils import six
+import six
 from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.utils.html import escape
 from django.views.decorators.csrf import csrf_exempt
@@ -365,6 +365,27 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
 
     @property
     def urls(self):
+        """
+        The endpoints this ``Resource`` responds to.
+
+        Mostly a standard URLconf, this is suitable for either automatic use
+        when registered with an ``Api`` class or for including directly in
+        a URLconf should you choose to.
+        
+        This property is required for Django 5.2+ compatibility.
+        """
+        return self.get_urls()
+
+    @property
+    def url_patterns(self):
+        """
+        Alias for urls property to maintain Django 5.2+ compatibility.
+        
+        Django 5.2+ expects url_patterns attribute for URL resolution.
+        """
+        return self.urls
+
+    def get_urls(self):
         """
         The endpoints this ``Resource`` responds to.
 
@@ -874,14 +895,14 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
         found_at = chomped_uri.rfind(self._meta.resource_name, 0, end_of_resource_name)
         chomped_uri = chomped_uri[found_at:]
         try:
-            for url_resolver in getattr(self, 'urls', []):
+            for url_resolver in getattr(self, 'url_patterns', []):
                 result = url_resolver.resolve(chomped_uri)
 
                 if result is not None:
                     view, args, kwargs = result
                     break
             else:
-                raise Resolver404("URI not found in 'self.urls'.")
+                raise Resolver404("URI not found in 'self.url_patterns'.")
         except Resolver404:
             raise NotFound("The URL provided '%s' was not a link to a valid resource." % uri)
 

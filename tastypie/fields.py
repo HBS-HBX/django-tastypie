@@ -14,7 +14,17 @@ try:
 except ImportError:
     from django.db.models.fields.related_descriptors import\
         ReverseOneToOneDescriptor
-from django.utils import datetime_safe, six
+try:
+    from django.utils import six
+except ImportError:
+    # Django 5.2+ removed six, use standard six
+    import six
+
+try:
+    from django.utils import datetime_safe
+except ImportError:
+    # Django 5.2+ removed datetime_safe, use standard datetime
+    import datetime as datetime_safe
 
 from tastypie.bundle import Bundle
 from tastypie.exceptions import ApiFieldError, NotFound
